@@ -27,11 +27,11 @@ class ApplicationInDB(ApplicationBase):
     pass
 
 class ApplicationUpdate(BaseModel):
-    job_title: str | None = None (OPTIONAL)
-    company: str | None = None (OPTIONAL)
-    status: str | None = None   (OPTIONAL)
-    application_url: str | None = None (OPTIONAL)
-    notes: str | None = None (OPTIONAL)
-    cover_letter_path: str | None = None (OPTIONAL)
+    job_title: str | None = None
+    company: str | None = None
+    status: str | None = None
+    application_url: str | None = None
+    notes: str | None = None
+    cover_letter_path: str | None = None
     resume_path: str | None = None 
     
