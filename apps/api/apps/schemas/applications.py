@@ -33,5 +33,5 @@ class ApplicationUpdate(BaseModel):
     application_url: str | None = None (OPTIONAL)
     notes: str | None = None (OPTIONAL)
     cover_letter_path: str | None = None (OPTIONAL)
-    resume_path: str | None = None (OPTIONAL)
+    resume_path: str | None = None 
     
