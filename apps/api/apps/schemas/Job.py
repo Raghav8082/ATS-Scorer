@@ -1,4 +1,3 @@
-from argparse import OPTIONAL
 from datetime import datetime
 from uuid import UUID, uuid4
 from pydantic import BaseModel, EmailStr, Field, ConfigDict

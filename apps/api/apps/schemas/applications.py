@@ -1,5 +1,3 @@
-from click import INT
-from argparse import OPTIONAL
 from datetime import datetime
 from uuid import UUID, uuid4
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
@@ -9,7 +7,7 @@ class ApplicationBase(BaseModel):
     job_title: str = Field(min_length=3, max_length=50)
     company: str = Field(min_length=3, max_length=50)
     status: str = Field(min_length=3, max_length=50)
-    match_score: INT
+    match_score: int | None = None
     notes: str | None = None
     cover_letter_path: str | None = None
     resume_path: str | None = None

@@ -9,8 +9,8 @@ class UserProfile(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
-    resume_text = Column(Text, nullable=True)          # extracted from uploaded PDF
-    preferences_json = Column(JSONB, nullable=True)     # role, salary, location, seniority, blacklist
-    pinecone_namespace = Column(String, nullable=True)  # this user's isolated vector space
-
+    full_name = Column(String, nullable=False)
+    resume_path = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     user = relationship("User", back_populates="profile")
