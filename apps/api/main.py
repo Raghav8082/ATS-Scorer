@@ -1,3 +1,4 @@
+import apps.models
 from apps.user.user_routes import user_router
 from apps.jobs.job_routes import job_router
 from apps.user_profile.profile_route import profile_router

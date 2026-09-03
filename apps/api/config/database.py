@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base
 from .confi import settings
 from minio import Minio
 
-Database_Url = f"postgresql+asyncpg://{settings.username}:{settings.password}@{settings.host}:{settings.db_port}/{settings.db_name}"
+Database_Url = f"postgresql+asyncpg://{settings.db_user}:{settings.password}@{settings.host}:{settings.db_port}/{settings.db_name}"
 engine = create_async_engine(Database_Url, echo=True)
 
 AsyncSessionLocal = async_sessionmaker(
