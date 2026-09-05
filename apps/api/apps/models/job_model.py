@@ -15,8 +15,8 @@ class Job(Base):
     salary_min = Column(Float, nullable=True)
     salary_max = Column(Float, nullable=True)
     description = Column(Text, nullable=False)
-    url = Column(String, unique=True, nullable=False)
-    platform = Column(String, nullable=False)   # "linkedin" / "indeed" / "glassdoor"
+    url = Column(String, unique=True, nullable=True)
+    platform = Column(String, nullable=True)   # "linkedin" / "indeed" / "glassdoor"
     embedding_id = Column(String, nullable=True)  # Pinecone vector ID, once embedded
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
 

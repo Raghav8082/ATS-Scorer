@@ -2,6 +2,7 @@ import apps.models
 from apps.user.user_routes import user_router
 from apps.jobs.job_routes import job_router
 from apps.user_profile.profile_route import profile_router
+from apps.scoring.score_route import score_router
 from fastapi import FastAPI
 import uvicorn  
 from config.database import engine, Base
@@ -26,4 +27,4 @@ async def on_startup():
 app.include_router(user_router)
 app.include_router(job_router)
 app.include_router(profile_router)
-
+app.include_router(score_router)

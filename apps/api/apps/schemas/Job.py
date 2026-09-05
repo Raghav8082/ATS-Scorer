@@ -4,10 +4,12 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class JobBase(BaseModel):
-    id: UUID
-    job_title: str = Field(min_length=3, max_length=50)
-    company: str = Field(min_length=3, max_length=50)
-    status: str = Field(min_length=3, max_length=50)
+    url: str | None = None
+    job_title: str | None = None
+    description: str = Field(min_length=3, max_length=2000)
+    company: str | None = None
+    status: str | None = None
+    platform: str | None = "custom"
     application_url: str | None = None
     notes: str | None = None
     cover_letter_path: str | None = None
