@@ -1,35 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LoadingSkeleton } from "@/components/dashboard/loading-skeleton";
 
 interface EmptyStatePanelProps {
+  onScoreMatch?: (resumeName: string, company: string, jobDesc: string) => void;
   uploaded?: (resultData: any) => void;
   isLoading?: boolean;
 }
 
-export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanelProps) {
+export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: EmptyStatePanelProps) {
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [company, setCompany] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);                     // Raw binary File object
-      setSelectedFileName(uploadedFile.name);   // "resume.pdf"
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) {
-      alert("Please select a resume file first.");
-      return;
-    }
     if (!jobDescription) {
       alert("Please enter a job description.");
       return;
@@ -43,21 +32,14 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
 
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Step 1: Upload Profile
-      const response = await fetch("http://127.0.0.1:8000/profile/upload", {
-        method: "POST",
-        body: formData,
+      const response = await fetch("http://127.0.0.1:8000/user/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       const resume_data = await response.json();
       if (!response.ok) {
-        console.error("Profile upload failed:", resume_data);
-        alert(`Profile upload failed: ${JSON.stringify(resume_data.detail || resume_data)}`);
+        alert("Profile not found. Please upload your profile first");
         return;
       }
 
@@ -96,9 +78,29 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
       }
 
       console.log("Scoring successful:", final_response_data);
+
+      let fileName = "Resume.pdf";
+      let fileSize = "142 KB";
+      const storedResult = localStorage.getItem("ats_last_match_result");
+
+      if (storedResult) {
+        try {
+          const parsed = JSON.parse(storedResult);
+          if (parsed.fileName) fileName = parsed.fileName;
+          if (parsed.fileSize) fileSize = parsed.fileSize;
+        } catch {
+          const rawName = storedResult.includes("_") ? storedResult.split("_").slice(1).join("_") : storedResult;
+          const firstChunk = rawName.split("-")[0] || "Resume";
+          fileName = firstChunk.charAt(0).toUpperCase() + firstChunk.slice(1);
+        }
+      } else if (resume_data?.resume_path) {
+        const rawPath = resume_data.resume_path;
+        fileName = rawPath.includes("_") ? rawPath.split("_").slice(1).join("_") : rawPath;
+      }
+
       const matchResult = {
-        fileName: selectedFileName || file.name,
-        fileSize: `${(file.size / 1024).toFixed(0)} KB`,
+        fileName,
+        fileSize,
         company: company || "Target Organization",
         jobTitle: job_data.title || "Job Requisition",
         jobDescription: jobDescription,
@@ -116,6 +118,11 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
       if (uploaded) {
         uploaded(matchResult);
       }
+      if (onScoreMatch) {
+        onScoreMatch(fileName, company, jobDescription);
+      }
+
+      router.push("/matches");
     } catch (error: any) {
       console.error("API Call error:", error);
       alert(`Network Error: ${error.message || "Failed to reach backend server"}`);
@@ -135,76 +142,8 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
       {/* Input Panels: 2-Column Split */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Resume Upload Panel (Col 1-6) */}
-          <div className="lg:col-span-6 bg-[#0e0e11] border border-white/10 rounded-xl p-6 flex flex-col justify-between shadow-2xl">
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                    Payload 01
-                  </span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="text-sm text-white font-medium">Candidate Profile</span>
-                </div>
-                <span className="text-xs font-mono text-zinc-500">
-                  {selectedFile ? "File Selected" : "Unassigned"}
-                </span>
-              </div>
-
-              {/* Drop Zone */}
-              <div
-                onClick={() => document.getElementById("resume-upload-input")?.click()}
-                className="relative border border-dashed border-white/15 hover:border-indigo-500/50 rounded-xl p-8 flex flex-col items-center text-center transition-all bg-[#121217] hover:bg-[#16161f] cursor-pointer group"
-              >
-                <input
-                  id="resume-upload-input"
-                  type="file"
-                  accept=".pdf,.docx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <div className="w-12 h-12 rounded-lg bg-[#202029] border border-white/10 flex items-center justify-center text-zinc-400 mb-3 group-hover:text-white transition-colors">
-                  <span className="material-symbols-outlined text-[24px]">upload_file</span>
-                </div>
-                <span className="text-sm text-white font-medium mb-1">
-                  {selectedFile || "Drag and drop your resume (PDF or DOCX)"}
-                </span>
-                <span className="text-xs text-zinc-400 mb-4">
-                  Max payload size 15MB. Encrypted in transit.
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    document.getElementById("resume-upload-input")?.click();
-                  }}
-                  className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/15 text-xs font-medium transition-colors flex items-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[16px]">folder_open</span>
-                  {selectedFileName || "Browse File"}
-                </button>
-              </div>
-
-              {/* Quick Selector / History Stash */}
-              <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-xs">
-                  <span className="material-symbols-outlined text-[14px]">history</span>
-                  <span>Recent:</span>
-                  <button
-                    type="button"
-                    // onClick={() => handleUseRecent("Staff_Eng_Alex_2025.pdf")}
-                    className="hover:text-white transition-colors underline decoration-white/20 underline-offset-2"
-                  >
-                    {selectedFileName || "Staff_Eng_Alex_2025.pdf"}
-                  </button>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-500 uppercase">VERIFIED MD5</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Job Description Panel (Col 7-12) */}
-          <div className="lg:col-span-6 bg-[#0e0e11] border border-white/10 rounded-xl p-6 flex flex-col justify-between shadow-2xl">
+          {/* Job Description Panel (Col 1-12) */}
+          <div className="lg:col-span-12 bg-[#0e0e11] border border-white/10 rounded-xl p-6 flex flex-col justify-between shadow-2xl">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-white/5 mb-4">
                 <div className="flex items-center gap-2">
@@ -272,7 +211,7 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
           disabled={isLoading}
           className="w-full bg-white hover:bg-zinc-200 active:bg-zinc-300 text-zinc-950 font-semibold text-sm py-3.5 rounded-xl transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
         >
-         
+          {/* TODO: wire to POST /scoring/{job_id} */}
           {isLoading ? (
             <>
               <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>
@@ -289,3 +228,4 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
     </div>
   );
 }
+

@@ -139,14 +139,99 @@ const mockSavedJobs: SavedJob[] = [
 
 export default function SavedJobsPage() {
   // Local UI state
+  const [userJobs, setUserJobs] = useState<SavedJob[]>([]);
+  const [isFetching, setIsFetching] = useState<boolean>(true);
   const [activeFilter, setActiveFilter] = useState<"all" | "high" | "review" | "applied" | "interviewing">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [rawJobText, setRawJobText] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [jobTitleInput, setJobTitleInput] = useState("");
+
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
+
+  const fetchJobs = async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setIsFetching(false);
+      return;
+    }
+    try {
+      setIsFetching(true);
+      const res = await fetch("http://127.0.0.1:8000/jobs", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const mapped: SavedJob[] = data.map((j: any) => {
+          const comp = j.company || "Target Organization";
+          const initials = comp.split(" ").map((w: string) => w[0]).join("").substring(0, 3).toUpperCase() || "JOB";
+          const title = j.title || j.job_title || "Job Requisition";
+          return {
+            id: j.id,
+            company: comp,
+            companyInitials: initials,
+            reqCode: `REQ-${(j.id || "").substring(0, 6).toUpperCase()}`,
+            statusBadge: {
+              label: (j.status || "ACTIVE REQUISITION").toUpperCase(),
+              variant: "ready" as const,
+            },
+            title: title,
+            location: j.location || "Remote / Unspecified",
+            salary: j.salary_min && j.salary_max ? `$${Math.round(j.salary_min/1000)}k - $${Math.round(j.salary_max/1000)}k` : "Compensation Unspecified",
+            linkedResume: j.resume_path || undefined,
+            matchScore: 90,
+            matchTier: "High Match",
+            filterCategory: "high" as const,
+            fitVectors: [
+              { label: (j.platform || "CUSTOM").toUpperCase(), percent: 95 },
+              { label: "VECTOR RELEVANCE", percent: 90 },
+            ],
+          };
+        });
+        setUserJobs(mapped);
+        setHasFetched(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch jobs:", err);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const handleDeleteJob = async (jobId: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    if (!confirm("Are you sure you want to remove this job requisition?")) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8000/jobs/${jobId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        fetchJobs();
+      } else {
+        const errData = await res.json();
+        alert(`Failed to delete job: ${errData.detail || "Error"}`);
+      }
+    } catch (e: any) {
+      alert(`Error deleting job: ${e.message}`);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const displayJobs = hasFetched ? userJobs : mockSavedJobs;
 
   // Filtered jobs list
   const filteredJobs = useMemo(() => {
-    return mockSavedJobs.filter((job) => {
+    return displayJobs.filter((job) => {
       const matchesSearch =
         searchQuery === "" ||
         job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,14 +251,48 @@ export default function SavedJobsPage() {
 
       return matchesSearch && matchesFilter;
     });
-  }, [activeFilter, searchQuery]);
+  }, [displayJobs, activeFilter, searchQuery]);
 
-  const handleQuickIngest = (e: React.FormEvent) => {
+  const handleQuickIngest = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire to POST /jobs/ingest
-    // const res = await fetch('/api/jobs/ingest', { method: 'POST', body: JSON.stringify({ rawJobText }) });
-    setRawJobText("");
-    setIsDrawerOpen(false);
+    if (!rawJobText.trim()) {
+      alert("Please enter a job description.");
+      return;
+    }
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("Please log in first.");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/jobs/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          company: companyName || "Target Organization",
+          description: rawJobText,
+          job_title: jobTitleInput || "Software Engineer",
+        }),
+      });
+
+      if (res.ok) {
+        setRawJobText("");
+        setCompanyName("");
+        setJobTitleInput("");
+        setIsDrawerOpen(false);
+        fetchJobs();
+      } else {
+        const data = await res.json();
+        alert(`Failed to add job: ${JSON.stringify(data.detail || data)}`);
+      }
+    } catch (err: any) {
+      alert(`Error creating job: ${err.message}`);
+    }
   };
 
   return (
@@ -197,7 +316,7 @@ export default function SavedJobsPage() {
                   <span className="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#1c1c24] text-indigo-300 border border-white/10">
                     PIPELINE MONITOR
                   </span>
-                  <span className="text-zinc-500 font-mono text-xs">• SYNCED 4M AGO</span>
+                  <span className="text-zinc-500 font-mono text-xs">• SYNCED JUST NOW</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
                   Saved Jobs
@@ -208,15 +327,6 @@ export default function SavedJobsPage() {
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
-                {/* TODO: wire to URL scraper / LinkedIn extension sync */}
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#14141a] hover:bg-[#1e1e28] text-zinc-200 hover:text-white border border-white/10 transition-colors text-xs font-medium"
-                >
-                  <span className="material-symbols-outlined text-[16px] text-indigo-400">link</span>
-                  <span>Import from URL / LinkedIn</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(!isDrawerOpen)}
@@ -237,7 +347,7 @@ export default function SavedJobsPage() {
                   <span className="material-symbols-outlined text-[16px] text-zinc-500">bookmark</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-white">6</span>
+                  <span className="text-2xl font-bold text-white">{displayJobs.length}</span>
                   <span className="text-xs font-mono text-zinc-500">active tracks</span>
                 </div>
                 <div className="mt-3 w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
@@ -245,50 +355,50 @@ export default function SavedJobsPage() {
                 </div>
               </div>
 
-              {/* Stat 2 */}
+              {/* Stat 2
               <div className="flex flex-col p-4 rounded-xl bg-[#0e0e11] border border-white/10 shadow-md">
                 <div className="flex items-center justify-between text-indigo-400 text-xs font-mono uppercase tracking-wider">
                   <span>High Conviction</span>
                   <span className="material-symbols-outlined text-[16px] text-indigo-400">verified</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-indigo-400">3</span>
+                  <span className="text-2xl font-bold text-indigo-400">{displayJobs.filter(j => j.matchScore >= 90).length}</span>
                   <span className="text-xs font-mono text-zinc-500">≥ 90% alignment</span>
                 </div>
                 <div className="mt-3 w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
                   <div className="bg-indigo-600 h-full rounded-full w-1/2"></div>
                 </div>
-              </div>
+              </div> */}
 
-              {/* Stat 3 */}
+              {/* Stat 3
               <div className="flex flex-col p-4 rounded-xl bg-[#0e0e11] border border-white/10 shadow-md">
                 <div className="flex items-center justify-between text-zinc-400 text-xs font-mono uppercase tracking-wider">
                   <span>Synthesized Letters</span>
                   <span className="material-symbols-outlined text-[16px] text-zinc-500">edit_note</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-white">2</span>
+                  <span className="text-2xl font-bold text-white">{displayJobs.filter(j => j.statusBadge.variant === "ready" || j.statusBadge.variant === "draft").length}</span>
                   <span className="text-xs font-mono text-zinc-500">tailored drafts</span>
                 </div>
                 <div className="mt-3 w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
                   <div className="bg-white h-full rounded-full w-1/3"></div>
                 </div>
-              </div>
+              </div> */}
 
-              {/* Stat 4 */}
+              {/* Stat 4
               <div className="flex flex-col p-4 rounded-xl bg-[#0e0e11] border border-white/10 shadow-md">
                 <div className="flex items-center justify-between text-zinc-400 text-xs font-mono uppercase tracking-wider">
                   <span>Applications Sent</span>
                   <span className="material-symbols-outlined text-[16px] text-zinc-500">send</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-white">1</span>
+                  <span className="text-2xl font-bold text-white">{displayJobs.filter(j => j.statusBadge.variant === "applied" || j.filterCategory === "applied").length}</span>
                   <span className="text-xs font-mono text-zinc-500">in review status</span>
                 </div>
                 <div className="mt-3 w-full bg-zinc-800 h-1 rounded-full overflow-hidden">
                   <div className="bg-white h-full rounded-full w-1/6"></div>
                 </div>
-              </div>
+              </div> */}
             </div>
 
             {/* Ingestion Drawer (Toggleable) */}
@@ -297,9 +407,8 @@ export default function SavedJobsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-mono uppercase text-indigo-400 tracking-wider">
-                      Ingestion Engine
+                      Add Job Requisition
                     </span>
-                    <span className="text-xs font-mono text-zinc-500">v2.4 AST Parser</span>
                   </div>
                   <button
                     type="button"
@@ -311,26 +420,49 @@ export default function SavedJobsPage() {
                 </div>
 
                 <form onSubmit={handleQuickIngest} className="flex flex-col gap-3">
-                  <label className="text-xs font-mono text-zinc-400">
-                    Paste raw job description markdown, raw text, or public posting URL:
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={rawJobText}
-                    onChange={(e) => setRawJobText(e.target.value)}
-                    placeholder="Paste complete Job Description markdown or careers URL..."
-                    className="w-full p-3.5 rounded-lg bg-[#14141a] border border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs focus:outline-none focus:border-indigo-500/50"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-mono text-zinc-400 block mb-1">Company Name</label>
+                      <input
+                        type="text"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="e.g. Stripe"
+                        className="w-full p-2.5 rounded-lg bg-[#14141a] border border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs focus:outline-none focus:border-indigo-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-mono text-zinc-400 block mb-1">Job Title</label>
+                      <input
+                        type="text"
+                        value={jobTitleInput}
+                        onChange={(e) => setJobTitleInput(e.target.value)}
+                        placeholder="e.g. Senior Frontend Engineer"
+                        className="w-full p-2.5 rounded-lg bg-[#14141a] border border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs focus:outline-none focus:border-indigo-500/50"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-mono text-zinc-400 block mb-1">
+                      Job Description
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={rawJobText}
+                      onChange={(e) => setRawJobText(e.target.value)}
+                      placeholder="Paste complete Job Description..."
+                      className="w-full p-3.5 rounded-lg bg-[#14141a] border border-white/5 text-white placeholder:text-zinc-600 font-mono text-xs focus:outline-none focus:border-indigo-500/50"
+                    />
+                  </div>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-zinc-500">
-                      CoverCraft extracts requirements, stack tokens, and salary bands automatically.
+                      Saves requisition specifically to your user account.
                     </span>
-                    {/* TODO: wire to POST /jobs/ingest */}
                     <button
                       type="submit"
                       className="px-4 py-2 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 text-xs font-semibold shadow transition-colors"
                     >
-                      Parse & Generate Match Vector
+                      Save Job Requisition
                     </button>
                   </div>
                 </form>
@@ -362,9 +494,9 @@ export default function SavedJobsPage() {
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-[#14141a]"
                   }`}
                 >
-                  All Saved ({mockSavedJobs.length})
+                  All Saved ({displayJobs.length})
                 </button>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setActiveFilter("high")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -374,8 +506,8 @@ export default function SavedJobsPage() {
                   }`}
                 >
                   High Match (&gt;90%)
-                </button>
-                <button
+                </button> */}
+                {/* <button
                   type="button"
                   onClick={() => setActiveFilter("review")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -385,8 +517,8 @@ export default function SavedJobsPage() {
                   }`}
                 >
                   In Review
-                </button>
-                <button
+                </button> */}
+                {/* <button
                   type="button"
                   onClick={() => setActiveFilter("applied")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -396,8 +528,8 @@ export default function SavedJobsPage() {
                   }`}
                 >
                   Applied
-                </button>
-                <button
+                </button> */}
+                {/* <button
                   type="button"
                   onClick={() => setActiveFilter("interviewing")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -407,7 +539,7 @@ export default function SavedJobsPage() {
                   }`}
                 >
                   Interviewing
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -470,7 +602,7 @@ export default function SavedJobsPage() {
                       </div>
                     </div>
 
-                    {/* Score Pill with Mini Radial Donut Representation */}
+                    {/* Score Pill & Actions */}
                     <div className="flex items-center gap-3 self-start lg:self-center shrink-0">
                       <div className="flex items-center gap-3 px-3.5 py-2 rounded-xl bg-[#14141a] border border-white/5">
                         <svg className="w-8 h-8 -rotate-90" viewBox="0 0 36 36">
@@ -505,13 +637,17 @@ export default function SavedJobsPage() {
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        aria-label="More options"
-                        className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">more_vert</span>
-                      </button>
+                      {hasFetched && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteJob(job.id)}
+                          aria-label="Delete job"
+                          title="Remove requisition"
+                          className="p-2 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -530,15 +666,6 @@ export default function SavedJobsPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 rounded-lg bg-[#14141a] hover:bg-[#1e1e28] text-zinc-300 text-xs font-medium border border-white/5 transition-colors"
-                      >
-                        View Requisition
-                      </button>
-
-                      {/* Score Breakdown action */}
-                      {/* TODO: wire to open breakdown or heatmap */}
                       <Link
                         href="/matches"
                         className="px-3 py-1.5 rounded-lg bg-[#14141a] hover:bg-[#1e1e28] text-indigo-300 text-xs font-medium border border-indigo-500/20 transition-colors flex items-center gap-1"
@@ -547,10 +674,8 @@ export default function SavedJobsPage() {
                         <span>Score Breakdown</span>
                       </Link>
 
-                      {/* Craft Cover Letter */}
-                      {/* TODO: wire to pre-fill cover letter studio with this job */}
                       <Link
-                        href="/cover-letters"
+                        href={`/cover-letters?jobId=${job.id}`}
                         className="px-3 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow transition-colors flex items-center gap-1"
                       >
                         <span className="material-symbols-outlined text-[14px]">edit_note</span>

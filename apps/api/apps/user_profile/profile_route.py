@@ -1,3 +1,5 @@
+
+from fastapi import UploadFile,File
 from apps.user_profile.profile_service import resume_upload
 from apps.schemas.user_profile import userProfile
 from apps.auth.auth import get_current_user
@@ -13,5 +15,9 @@ profile_router = APIRouter(
 
 
 @profile_router.post("/upload")
-async def upload_resume(resume: userProfile, db: AsyncSession = Depends(get_db)):
-    return await resume_upload(resume=resume, db=db)
+async def upload_resume(
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+   return await resume_upload(file=file, user_id=current_user.id, db=db)

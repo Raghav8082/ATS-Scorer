@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 interface NavItem {
   name: string;
@@ -16,11 +16,62 @@ const navItems: NavItem[] = [
   { name: "Resumes", href: "/resumes", icon: "description" },
   { name: "Saved Jobs", href: "/saved-jobs", icon: "bookmark" },
   { name: "Cover Letters", href: "/cover-letters", icon: "edit_note" },
-  { name: "Preferences", href: "#", icon: "tune" },
+  // { name: "Preferences", href: "#", icon: "tune" },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [currentUser, setcurrentuser] = useState<{ username: string } | null>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("access_token");
+
+      if (!token) return;
+      try {
+        const response = await fetch("http://127.0.0.1:8000/user/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setcurrentuser(data);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+    window.addEventListener("user-login", fetchUser);
+    return () => window.removeEventListener("user-login", fetchUser);
+  }, [pathname]);
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("ats_last_match_result");
+    setcurrentuser(null);
+    setIsMenuOpen(false);
+    router.push("/login");
+  };
+
+  const username = currentUser?.username || "Guest";
+  const avatar_initial =
+    (username.charAt(0) + (username.charAt(1) || "")).toUpperCase() || "G";
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-[#0a0a0d] border-r border-white/10 z-50 flex flex-col justify-between pt-4 pb-6 select-none">
@@ -75,25 +126,39 @@ export function SidebarNav() {
       </div>
 
       {/* Bottom Profile & Utilities */}
-      <div className="px-3 flex flex-col gap-3">
-        <Link
-          href="#"
-          className="flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm text-zinc-400 hover:bg-[#1a1a24] hover:text-zinc-200 transition-colors"
+      <div className="px-3 flex flex-col gap-3 relative" ref={menuRef}>
+        <button
+          type="button"
+          onClick={() => alert("Feature in progress")}
+          className="flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm text-zinc-400 hover:bg-[#1a1a24] hover:text-zinc-200 transition-colors cursor-pointer w-full text-left"
         >
           <span className="material-symbols-outlined text-[20px]">help_outline</span>
           <span>Docs & Help</span>
-        </Link>
+        </button>
+
+        {/* User Menu Dropdown */}
+        {isMenuOpen && (
+          <div className="absolute bottom-full left-3 right-3 mb-2 bg-[#14141a] border border-white/10 rounded-xl p-1.5 shadow-2xl z-50 flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer text-left"
+            >
+              <span className="material-symbols-outlined text-[16px]">logout</span>
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
 
         {/* User Card */}
-        {/* TODO: Wire to real user profile data from /user/me or auth session */}
         <div className="p-3 rounded-xl bg-[#111116] border border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-full bg-white text-zinc-950 flex items-center justify-center shrink-0 font-semibold text-xs">
-              AM
+              {avatar_initial}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs text-white font-medium truncate">
-                Alex Mercer
+                {username}
               </span>
               <span className="text-[10px] font-mono font-semibold tracking-wider text-indigo-400 uppercase">
                 PRO PLAN
@@ -101,8 +166,10 @@ export function SidebarNav() {
             </div>
           </div>
           <button
+            type="button"
             aria-label="User menu"
-            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">more_vert</span>
           </button>

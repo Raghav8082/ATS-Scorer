@@ -16,4 +16,5 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     profile = relationship("UserProfile", back_populates="user", uselist=False)
+    jobs = relationship("Job", back_populates="user", cascade="all, delete-orphan")
     applications = relationship("Application", back_populates="user")

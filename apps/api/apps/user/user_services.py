@@ -1,3 +1,4 @@
+from sqlalchemy import UUID
 from apps.schemas.user import UserUpdate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -106,4 +107,13 @@ async def user_update(db: AsyncSession, User_data: UserUpdate) -> User:
     return existing_user
 
 
-
+async def user_get(db:AsyncSession, user_id:UUID | str) -> User:
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    existing_user = result.scalars().first()
+    if not existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+    return existing_user

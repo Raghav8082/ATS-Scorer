@@ -1,9 +1,26 @@
+import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from .confi import settings
-from minio import Minio
 
-Database_Url = f"postgresql+asyncpg://{settings.db_user}:{settings.password}@{settings.host}:{settings.db_port}/{settings.db_name}"
+# Support direct DATABASE_URL (e.g. Neon PostgreSQL, Render Postgres)
+raw_db_url = settings.DATABASE_URL or os.getenv("DATABASE_URL")
+if raw_db_url:
+    url = raw_db_url
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if "sslmode=require" in url:
+        url = url.replace("sslmode=require", "ssl=require")
+    if "&channel_binding=require" in url:
+        url = url.replace("&channel_binding=require", "")
+    elif "?channel_binding=require" in url:
+        url = url.replace("?channel_binding=require", "")
+    Database_Url = url
+else:
+    Database_Url = f"postgresql+asyncpg://{settings.db_user}:{settings.password}@{settings.host}:{settings.db_port}/{settings.db_name}"
+
+
+
 engine = create_async_engine(Database_Url, echo=True)
 
 AsyncSessionLocal = async_sessionmaker(
@@ -18,14 +35,5 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
-async def client():
-    # Minio endpoint should be host:port without scheme, or set secure appropriately
-    endpoint = settings.MINIO_ENDPOINT.replace("http://", "").replace("https://", "")
-    return Minio(
-        endpoint,
-        access_key=settings.MINIO_ACCESS_KEY,
-        secret_key=settings.MINIO_SECRET_KEY,
-        secure=False
-    )
         
 

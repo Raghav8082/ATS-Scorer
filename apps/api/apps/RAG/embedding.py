@@ -1,13 +1,15 @@
-# app/rag/embeddings.py
 from sentence_transformers import SentenceTransformer
+import torch
 
 _model = None
 
 def get_embedding_model() -> SentenceTransformer:
     global _model
     if _model is None:
-        _model = SentenceTransformer("BAAI/bge-small-en-v1.5", device="cuda")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        _model = SentenceTransformer("BAAI/bge-small-en-v1.5", device=device)
     return _model
+
 
 
 

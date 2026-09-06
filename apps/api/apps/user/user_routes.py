@@ -1,3 +1,4 @@
+from apps.user.user_services import user_get
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,3 +24,6 @@ async def login_user(user: UserLogin, db: AsyncSession = Depends(get_db)):
 async def update_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return await user_update(db=db, User_data=user)
  
+@user_router.get("/me", dependencies=[Depends(get_current_user)]) 
+async def get_me(current_user = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
+    return await user_get(db=db, user_id=current_user.id)

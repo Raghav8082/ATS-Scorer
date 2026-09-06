@@ -3,23 +3,61 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { AuthRadialGlow } from "@/components/ui/radial-glow";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  // Local state only — no backend or auth logic
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // TODO: wire to POST /auth/login or OAuth provider
-    // e.g. const response = await fetch('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    setTimeout(() => {
+    setErrorMsg(null);
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/user/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username_or_email: email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        let msg = "Login failed. Please check your credentials.";
+        if (typeof data.detail === "string") {
+          msg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          msg = data.detail.map((err: any) => `${err.loc?.join(".")}: ${err.msg}`).join(", ");
+        } else if (data.detail && typeof data.detail === "object") {
+          msg = JSON.stringify(data.detail);
+        }
+        throw new Error(msg);
+      }
+
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        window.dispatchEvent(new Event("user-login"));
+      }
+      if (data.refresh_token) {
+        localStorage.setItem("refresh_token", data.refresh_token);
+        window.dispatchEvent(new Event("user-login"));
+      }
+
+      router.push("/matches");
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setErrorMsg(err.message || "An unexpected error occurred.");
+    } finally {
       setIsSubmitting(false);
-    }, 600);
+    }
   };
 
   return (
@@ -60,6 +98,12 @@ export default function LoginPage() {
         {/* Authentication Card */}
         <div className="bg-[#0e0e11] border border-white/10 rounded-2xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {errorMsg && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <span className="material-symbols-outlined text-[16px] shrink-0">error</span>
+                <span>{errorMsg}</span>
+              </div>
+            )}
             {/* Email Field */}
             <div className="flex flex-col gap-1.5">
               <label
@@ -90,12 +134,12 @@ export default function LoginPage() {
                 >
                   Password
                 </label>
-                <Link
+                {/* <Link
                   href="#"
                   className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
                 >
                   Forgot password?
-                </Link>
+                </Link> */}
               </div>
               <div className="relative">
                 <input
@@ -154,17 +198,17 @@ export default function LoginPage() {
           </form>
 
           {/* Social Sign-in Divider */}
-          <div className="relative my-6">
+          {/* <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-[11px] font-mono uppercase tracking-wider">
               <span className="bg-[#0e0e11] px-2 text-zinc-500">Or continue with</span>
             </div>
-          </div>
+          </div> */}
 
           {/* OAuth Mock Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1c1c24] border border-white/10 text-xs text-zinc-300 font-medium transition-colors"
@@ -198,7 +242,7 @@ export default function LoginPage() {
               </svg>
               <span>Google</span>
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer Redirect Link */}

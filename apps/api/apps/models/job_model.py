@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, DateTime, Text
+from sqlalchemy import Column, String, Float, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -9,6 +9,7 @@ class Job(Base):
     __tablename__ = "jobs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=False)
     company = Column(String, nullable=False)
     location = Column(String, nullable=True)
@@ -20,4 +21,5 @@ class Job(Base):
     embedding_id = Column(String, nullable=True)  # Pinecone vector ID, once embedded
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    user = relationship("User", back_populates="jobs")
     applications = relationship("Application", back_populates="job")

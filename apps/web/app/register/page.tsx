@@ -2,25 +2,75 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthRadialGlow } from "@/components/ui/radial-glow";
 
 export default function RegisterPage() {
-  // Local state only — no backend or auth logic
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
+    const username = fullName.trim();
+    if (username.length < 3) {
+      setErrorMsg("Username/Name must be at least 3 characters long.");
+      return;
+    }
+    if (password.length < 8) {
+      setErrorMsg("Password must be at least 8 characters long.");
+      return;
+    }
+    if (!agreeTerms) {
+      setErrorMsg("Please agree to the Terms of Service & Privacy Policy.");
+      return;
+    }
+
     setIsSubmitting(true);
-    // TODO: wire to POST /auth/register or user creation endpoint
-    // e.g. const response = await fetch('/api/auth/register', { method: 'POST', body: JSON.stringify({ fullName, email, password }) });
-    setTimeout(() => {
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/user/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        let detail = data.detail;
+        if (Array.isArray(detail)) {
+          detail = detail.map((err: any) => err.msg).join(", ");
+        }
+        throw new Error(detail || "Registration failed. Please check your credentials.");
+      }
+
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        window.dispatchEvent(new Event("user-login"));
+        router.push("/matches");
+      } else {
+        router.push("/login");
+      }
+    } catch (err: any) {
+      console.error("Register error:", err);
+      setErrorMsg(err.message || "Registration failed. Please try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 600);
+    }
   };
 
   return (
@@ -58,6 +108,23 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* Error Banner */}
+        {errorMsg && (
+          <div className="mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              <span>{errorMsg}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMsg(null)}
+              className="text-rose-400 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        )}
+
         {/* Authentication Card */}
         <div className="bg-[#0e0e11] border border-white/10 rounded-2xl p-7 sm:p-8 shadow-2xl backdrop-blur-xl">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -67,7 +134,7 @@ export default function RegisterPage() {
                 htmlFor="fullName"
                 className="text-xs font-mono uppercase tracking-wider text-zinc-400"
               >
-                Full Name
+                Username / Full Name
               </label>
               <input
                 id="fullName"
@@ -121,7 +188,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-1 flex items-center justify-center"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors p-1 flex items-center justify-center cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px]">
                     {showPassword ? "visibility_off" : "visibility"}
@@ -154,7 +221,6 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            {/* TODO: wire to POST /auth/register */}
             <button
               type="submit"
               disabled={isSubmitting}
@@ -174,20 +240,21 @@ export default function RegisterPage() {
           </form>
 
           {/* Social Sign-in Divider */}
-          <div className="relative my-6">
+          {/* <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center text-[11px] font-mono uppercase tracking-wider">
               <span className="bg-[#0e0e11] px-2 text-zinc-500">Or sign up with</span>
             </div>
-          </div>
+          </div> */}
 
           {/* OAuth Mock Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1c1c24] border border-white/10 text-xs text-zinc-300 font-medium transition-colors"
+              onClick={() => alert("Feature in progress")}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1c1c24] border border-white/10 text-xs text-zinc-300 font-medium transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
@@ -196,7 +263,8 @@ export default function RegisterPage() {
             </button>
             <button
               type="button"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1c1c24] border border-white/10 text-xs text-zinc-300 font-medium transition-colors"
+              onClick={() => alert("Feature in progress")}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1c1c24] border border-white/10 text-xs text-zinc-300 font-medium transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -218,7 +286,7 @@ export default function RegisterPage() {
               </svg>
               <span>Google</span>
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer Redirect Link */}

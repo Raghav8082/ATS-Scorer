@@ -23,6 +23,11 @@ Requirements:
   const [targetRole, setTargetRole] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
 
+  React.useEffect(() => {
+    setTargetRole(initialTitle);
+    setDescription(initialDescription);
+  }, [initialTitle, initialDescription]);
+
   const wordCount = description.trim() ? description.trim().split(/\s+/).length : 0;
 
   return (
