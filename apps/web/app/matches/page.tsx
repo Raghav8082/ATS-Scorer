@@ -84,6 +84,33 @@ export default function MatchesPage() {
           {/* Ambient Radial Glow behind headline */}
           <RadialGlow />
 
+          {matchData && (
+            <div className="mb-8 p-1.5 rounded-xl bg-[#111116] border border-white/10 w-fit flex items-center gap-1 shadow-lg shadow-black/40">
+              <button
+                type="button"
+                onClick={() => setViewState("populated")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  viewState === "populated"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                }`}
+              >
+                Populated Match
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewState("empty")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  viewState === "empty"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+                }`}
+              >
+                New Match
+              </button>
+            </div>
+          )}
+
           {/* Page Headline & Context */}
           <div className="flex flex-col gap-2 mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
