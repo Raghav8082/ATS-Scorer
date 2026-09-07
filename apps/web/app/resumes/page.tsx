@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { TopHeader } from "@/components/layout/top-header";
 import { RadialGlow } from "@/components/ui/radial-glow";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function ResumesPage() {
   const [emailInput, setEmailInput] = useState("alex.mercer@covercraft.io");
@@ -14,7 +15,7 @@ export default function ResumesPage() {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-    fetch("http://127.0.0.1:8000/user/me", {
+    fetch(`${API_BASE_URL}/user/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => (res.ok ? res.json() : null))

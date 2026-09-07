@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 
 interface TopHeaderProps {
   onNewMatch?: () => void;
@@ -20,7 +21,7 @@ export function TopHeader({ onNewMatch }: TopHeaderProps) {
 
         if (!token) return;
         try {
-          const response = await fetch("http://127.0.0.1:8000/user/me", {
+          const response = await fetch(`${API_BASE_URL}/user/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },

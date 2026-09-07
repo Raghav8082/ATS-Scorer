@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSkeleton } from "@/components/dashboard/loading-skeleton";
+import { API_BASE_URL } from "@/lib/api";
 
 interface EmptyStatePanelProps {
   onScoreMatch?: (resumeName: string, company: string, jobDesc: string) => void;
@@ -32,7 +33,7 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/user/me", {
+      const response = await fetch(`${API_BASE_URL}/user/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -44,7 +45,7 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
       }
 
       // Step 2: Create Job Requisition
-      const job_create = await fetch("http://127.0.0.1:8000/jobs/create", {
+      const job_create = await fetch(`${API_BASE_URL}/jobs/create`, {
         method: "POST",
         body: JSON.stringify({
           company: company || "Unknown Organization",
@@ -63,7 +64,7 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
       }
 
       // Step 3: Compute Score
-      const final_response = await fetch(`http://127.0.0.1:8000/scoring/${job_data.id}`, {
+      const final_response = await fetch(`${API_BASE_URL}/scoring/${job_data.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

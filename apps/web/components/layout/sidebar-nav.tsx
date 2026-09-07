@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/api";
 
 interface NavItem {
   name: string;
@@ -32,7 +33,7 @@ export function SidebarNav() {
 
       if (!token) return;
       try {
-        const response = await fetch("http://127.0.0.1:8000/user/me", {
+        const response = await fetch(`${API_BASE_URL}/user/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { TopHeader } from "@/components/layout/top-header";
 import { RadialGlow } from "@/components/ui/radial-glow";
+import { API_BASE_URL } from "@/lib/api";
 
 interface SavedJob {
   id: string;
@@ -158,7 +159,7 @@ export default function SavedJobsPage() {
     }
     try {
       setIsFetching(true);
-      const res = await fetch("http://127.0.0.1:8000/jobs", {
+      const res = await fetch(`${API_BASE_URL}/jobs`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -206,7 +207,7 @@ export default function SavedJobsPage() {
     if (!token) return;
     if (!confirm("Are you sure you want to remove this job requisition?")) return;
     try {
-      const res = await fetch(`http://127.0.0.1:8000/jobs/${jobId}`, {
+      const res = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -267,7 +268,7 @@ export default function SavedJobsPage() {
     }
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/jobs/create", {
+      const res = await fetch(`${API_BASE_URL}/jobs/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

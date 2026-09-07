@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { TopHeader } from "@/components/layout/top-header";
 import { RadialGlow } from "@/components/ui/radial-glow";
+import { API_BASE_URL } from "@/lib/api";
 
 interface SavedJobOption {
   id: string;
@@ -64,7 +65,7 @@ function CoverLetterStudioContent() {
 
       if (token) {
         try {
-          const res = await fetch("http://127.0.0.1:8000/jobs", {
+          const res = await fetch(`${API_BASE_URL}/jobs`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
@@ -144,7 +145,7 @@ function CoverLetterStudioContent() {
     setErrorMsg(null);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/scoring/${targetId}/cover-letter`, {
+      const res = await fetch(`${API_BASE_URL}/scoring/${targetId}/cover-letter`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
