@@ -176,7 +176,7 @@ function CoverLetterStudioContent() {
   const companyName = activeJob?.company || "Target Company";
   const jobTitle = activeJob?.title || "Requisition Role";
   const reqCode = selectedJobId ? `REQ-${selectedJobId.substring(0, 6).toUpperCase()}` : "REQ-STANDARD";
-  const displayScore = basedOnScore !== null ? `${basedOnScore}% Match Fit` : "94% Match Fit";
+  const displayScore = basedOnScore !== null ? `${basedOnScore}% Match Fit` : "Match score unavailable";
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 flex selection:bg-indigo-500/30 selection:text-indigo-200">

@@ -58,10 +58,21 @@ async def generate_letter(
     job = await _get_owned_job(job_id, current_user, db)
     profile = await _get_user_profile(current_user, db)  # ensures profile/resume exist before proceeding
 
-    job_chunks = embed_chunks(prepare_job_description(job.description))
-    score_result = compute_match_score(str(current_user.id), job_chunks)
+    try:
+        job_chunks = embed_chunks(prepare_job_description(job.description))
+        score_result = compute_match_score(str(current_user.id), job_chunks)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not prepare the match context for cover-letter generation: {exc}",
+        ) from exc
 
     resume_texts = [match["resume_text"] for match in score_result["top_matches"]]
+    if not resume_texts:
+        raise HTTPException(
+            status_code=404,
+            detail="No matching resume sections were found. Upload your resume again before generating a cover letter.",
+        )
     candidate_name = profile.full_name or "Applicant"
     letter = generate_cover_letter(resume_texts, job.description, job.company, candidate_name=candidate_name)
 
