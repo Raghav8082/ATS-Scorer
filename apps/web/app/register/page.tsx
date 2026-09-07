@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthRadialGlow } from "@/components/ui/radial-glow";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/user/register", {
+      const response = await fetch(`${API_BASE_URL}/user/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
