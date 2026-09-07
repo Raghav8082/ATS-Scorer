@@ -15,7 +15,7 @@ def generate_cover_letter(resume_chunks_text: list[str], job_description: str, c
             detail="GEMINI_API_KEY or GOOGLE_API_KEY is missing. Please add your key to apps/api/.env."
         )
 
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
     context = "\n\n".join(resume_chunks_text)
     prompt = f"""Given these relevant parts of candidate "{candidate_name}"'s background:
