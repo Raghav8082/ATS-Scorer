@@ -1,6 +1,6 @@
 # app/rag/cover_letter.py
 import os
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
@@ -14,8 +14,8 @@ def generate_cover_letter(resume_chunks_text: list[str], job_description: str, c
             detail="GEMINI_API_KEY or GOOGLE_API_KEY is missing. Please add your key to apps/api/.env."
         )
 
-    genai.configure(api_key=api_key.strip())
-    model = genai.GenerativeModel("gemini-3.6-flash")
+    client = genai.Client(api_key=api_key.strip())
+    model_name = "gemini-1.5-flash"
 
     context = "\n\n".join(resume_chunks_text)
     prompt = f"""Given these relevant parts of candidate "{candidate_name}"'s background:
@@ -31,7 +31,10 @@ Only use facts present in the background provided above — do not invent achiev
 Always sign off the letter with "Sincerely,\n{candidate_name}" instead of generic placeholders like [Your Name] or [Candidate Name]."""
 
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+        )
         text = response.text or ""
         # Safety replacement if LLM still leaves placeholder
         text = text.replace("[Your Name]", candidate_name).replace("[Candidate Name]", candidate_name).replace("[Name]", candidate_name)
