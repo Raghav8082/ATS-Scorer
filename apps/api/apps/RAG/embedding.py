@@ -10,16 +10,13 @@ def get_embedding_model() -> SentenceTransformer:
         _model = SentenceTransformer("BAAI/bge-small-en-v1.5", device=device)
     return _model
 
-
-
-
 def embed_chunks(chunks: list[dict]) -> list[dict]:
     """Takes chunk dicts, returns them with an added 'vector' field."""
     model = get_embedding_model()
     texts = [chunk["text"] for chunk in chunks]
-    vectors = model.encode(texts, batch_size=8)  # batched, not looped
+    vectors = model.encode(texts, batch_size=8)
 
     for chunk, vector in zip(chunks, vectors):
-        chunk["vector"] = vector.tolist()  # numpy array → plain list for storage/JSON
+        chunk["vector"] = vector.tolist()
 
-    return chunks
+    return chunks
