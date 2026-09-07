@@ -14,11 +14,14 @@ app = FastAPI(title="CoverCraft ATS API")
 
 # Dynamic CORS origins from settings/environment
 raw_origins = settings.allowed_origins or "http://localhost:3000,http://127.0.0.1:3000"
-origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+# Strip trailing slashes — browsers send origins without them
+origins = [origin.strip().rstrip("/") for origin in raw_origins.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins else ["*"],
+    # Allow all Vercel preview deployments (*.vercel.app) automatically
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
