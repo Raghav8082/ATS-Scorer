@@ -1,6 +1,5 @@
 
 from fastapi import UploadFile
-from transformers.models.bert_generation import configuration_bert_generation
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from apps.models.userprof_model import UserProfile

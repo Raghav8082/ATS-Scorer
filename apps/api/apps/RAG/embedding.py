@@ -1,22 +1,20 @@
-from sentence_transformers import SentenceTransformer
-import torch
-
-_model = None
-
-def get_embedding_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        _model = SentenceTransformer("BAAI/bge-small-en-v1.5", device=device)
-    return _model
+import os
+import google.generativeai as genai
+from config.confi import settings
 
 def embed_chunks(chunks: list[dict]) -> list[dict]:
-    """Takes chunk dicts, returns them with an added 'vector' field."""
-    model = get_embedding_model()
-    texts = [chunk["text"] for chunk in chunks]
-    vectors = model.encode(texts, batch_size=8)
+    """Takes chunk dicts, returns them with an added 384d 'vector' field from Gemini API."""
+    api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key.strip())
 
-    for chunk, vector in zip(chunks, vectors):
-        chunk["vector"] = vector.tolist()
+    for chunk in chunks:
+        res = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=chunk["text"],
+            output_dimensionality=384
+        )
+        chunk["vector"] = res["embedding"]
 
-    return chunks
+    return chunks
+
