@@ -11,10 +11,10 @@ interface SourceDocumentCardProps {
 }
 
 export function SourceDocumentCard({
-  fileName = "Sarah_Jenkins_Senior_Frontend_2025.pdf",
-  fileSize = "142 KB",
-  parsedTime = "Parsed 4m ago",
-  pagesCount = 3,
+  fileName = "Resume file",
+  fileSize = "File size unavailable",
+  parsedTime = "Parsed recently",
+  pagesCount,
   onReplaceFile,
 }: SourceDocumentCardProps) {
   return (
@@ -54,7 +54,7 @@ export function SourceDocumentCard({
       <div className="flex items-center justify-between px-1 text-xs font-mono text-zinc-400">
         <span className="flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[14px] text-indigo-400">check_circle</span>
-          {pagesCount} pages indexed
+          {pagesCount ? `${pagesCount} pages indexed` : "Resume indexed"}
         </span>
         <span>UTF-8 encoded</span>
       </div>

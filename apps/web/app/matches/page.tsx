@@ -13,7 +13,7 @@ import { SemanticHeatmapModal } from "@/components/dashboard/semantic-heatmap-mo
 
 export default function MatchesPage() {
   const [matchData, setMatchData] = useState<any | null>(null);
-  const [viewState, setViewState] = useState<"populated" | "empty" | "loading">("empty");
+  const [viewState, setViewState] = useState<"populated" | "empty" | "loading">("loading");
   const [isHeatmapOpen, setIsHeatmapOpen] = useState(false);
 
   // Load previous match data on mount if available
@@ -23,7 +23,12 @@ export default function MatchesPage() {
       if (stored) {
         const parsed = JSON.parse(stored);
         setMatchData(parsed);
-        setViewState("populated");
+        if (parsed?.scoring && parsed?.jobId) {
+          setMatchData(parsed);
+          setViewState("populated");
+        } else {
+          setViewState("empty");
+        }
       } else {
         setViewState("empty");
       }
@@ -39,9 +44,9 @@ export default function MatchesPage() {
   };
 
   const scoring = matchData?.scoring || {};
-  const rawOverall = scoring.overall_score ?? 0.94;
-  const rawSemantic = scoring.embedding_score ?? 0.96;
-  const rawKeyword = scoring.keyword_score ?? 0.89;
+  const rawOverall = scoring.overall_score ?? scoring.embedding_score ?? 0;
+  const rawSemantic = scoring.embedding_score ?? 0;
+  const rawKeyword = scoring.keyword_score ?? 0;
 
   const overallScore = Math.round(rawOverall <= 1 ? rawOverall * 100 : rawOverall);
   const semanticScore = Math.round(rawSemantic <= 1 ? rawSemantic * 100 : rawSemantic);
@@ -58,7 +63,7 @@ export default function MatchesPage() {
           description: `Semantic vector similarity: ${itemScore}% for ${item.resume_section || 'resume section'}.`,
         };
       })
-    : undefined;
+    : [];
 
   const targetTitle = matchData?.company
     ? `${matchData.company}${matchData.jobTitle ? ' — ' + matchData.jobTitle : ''}`
@@ -78,32 +83,6 @@ export default function MatchesPage() {
         <main className="flex-1 pt-24 pb-16 px-4 sm:px-8 max-w-7xl mx-auto w-full relative">
           {/* Ambient Radial Glow behind headline */}
           <RadialGlow />
-
-          {/* Dev State Switcher Pill Bar */}
-          <div className="mb-8 p-1.5 rounded-xl bg-[#111116] border border-white/10 w-fit flex items-center gap-1 shadow-lg shadow-black/40">
-            <button
-              type="button"
-              onClick={() => setViewState("populated")}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                viewState === "populated"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-              }`}
-            >
-              Populated Results
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewState("empty")}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                viewState === "empty"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
-              }`}
-            >
-              Empty State
-            </button>
-          </div>
 
           {/* Page Headline & Context */}
           <div className="flex flex-col gap-2 mb-8">
@@ -129,10 +108,10 @@ export default function MatchesPage() {
               {/* Left Column: Source Document + Target Role Cards */}
               <div className="lg:col-span-5 flex flex-col gap-6">
                 <SourceDocumentCard
-                  fileName={matchData?.fileName || "Sarah_Jenkins_Senior_Frontend_2025.pdf"}
-                  fileSize={matchData?.fileSize || "142 KB"}
+                  fileName={matchData?.fileName || "Resume file"}
+                  fileSize={matchData?.fileSize}
                   parsedTime={matchData?.timestamp ? `Parsed ${new Date(matchData.timestamp).toLocaleTimeString()}` : "Parsed recently"}
-                  pagesCount={3}
+                  pagesCount={undefined}
                   onReplaceFile={() => setViewState("empty")}
                 />
                 <TargetRoleCard

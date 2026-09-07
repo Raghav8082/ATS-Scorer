@@ -80,8 +80,8 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
 
       console.log("Scoring successful:", final_response_data);
 
-      let fileName = "Resume.pdf";
-      let fileSize = "142 KB";
+      let fileName = "Resume file";
+      let fileSize = "File size unavailable";
       const storedResult = localStorage.getItem("ats_last_match_result");
 
       if (storedResult) {

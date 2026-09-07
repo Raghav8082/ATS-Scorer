@@ -15,7 +15,7 @@ def generate_cover_letter(resume_chunks_text: list[str], job_description: str, c
         )
 
     client = genai.Client(api_key=api_key.strip())
-    model_name = "gemini-1.5-flash"
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
     context = "\n\n".join(resume_chunks_text)
     prompt = f"""Given these relevant parts of candidate "{candidate_name}"'s background:

@@ -21,45 +21,14 @@ interface ResultsPanelProps {
   onOpenHeatmap?: () => void;
 }
 
-const defaultSections: SectionAnalysisItem[] = [
-  {
-    id: "01",
-    title: "Work Experience — Staff UI Architecture at Vercel",
-    score: 96,
-    description:
-      "Strong coverage on distributed design systems, real-time client hydration, and AST tooling.",
-  },
-  {
-    id: "02",
-    title: "Technical Expertise — React, WebGL & Next.js",
-    score: 92,
-    description:
-      "Exceeds requirements in graphics pipelines and high-throughput dashboard state stores.",
-  },
-  {
-    id: "03",
-    title: "Core Projects — Distributed Design Systems",
-    score: 88,
-    description:
-      "Highlights component governance models and tokens sync systems matching enterprise scale.",
-  },
-  {
-    id: "04",
-    title: "Open Source Leadership — Component Libraries",
-    score: 84,
-    description:
-      "Demonstrates external technical influence and API ergonomics validation through public adoption.",
-  },
-];
-
 export function ResultsPanel({
   jobId,
-  overallScore = 94,
-  semanticScore = 96,
-  keywordScore = 89,
-  semanticDetail = "Direct context & architectural alignment",
-  keywordDetail = "24 of 27 core technical tokens matched",
-  sections = defaultSections,
+  overallScore = 0,
+  semanticScore = 0,
+  keywordScore = 0,
+  semanticDetail = "Returned by the semantic matching service",
+  keywordDetail = "Keyword score was not returned by the matching service",
+  sections = [],
   onOpenHeatmap,
 }: ResultsPanelProps) {
   const getMatchBadge = (score: number) => {
@@ -182,7 +151,7 @@ export function ResultsPanel({
       {/* Action Footer */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2 border-t border-white/5">
         <span className="text-xs font-mono text-zinc-400">
-          Matched against 27 semantic vectors
+          Based on returned match sections
         </span>
         <div className="flex items-center gap-3">
           <button
