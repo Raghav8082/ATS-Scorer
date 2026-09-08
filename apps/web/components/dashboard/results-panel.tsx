@@ -29,8 +29,13 @@ export function ResultsPanel({
   semanticDetail = "Returned by the semantic matching service",
   keywordDetail = "Keyword score was not returned by the matching service",
   sections = [],
-  onOpenHeatmap,
 }: ResultsPanelProps) {
+  const technicalSkillsMatch = sections.find((item) => {
+    const section = item.title.toLowerCase();
+    return section.includes("technical skill") || section.includes("skills");
+  });
+  const displayedKeywordScore = technicalSkillsMatch?.score ?? keywordScore;
+
   const getMatchBadge = (score: number) => {
     if (score >= 80) return { label: "Strong match", color: "bg-indigo-500/15 border-indigo-500/30 text-indigo-300", icon: "verified" };
     if (score >= 60) return { label: "Moderate match", color: "bg-sky-500/15 border-sky-500/30 text-sky-300", icon: "check_circle" };
@@ -97,12 +102,12 @@ export function ResultsPanel({
               <span className="material-symbols-outlined text-[16px] text-emerald-400">tag</span>
               Keyword Coverage
             </span>
-            <span className="text-xs font-mono font-bold text-emerald-300">{keywordScore}%</span>
+            <span className="text-xs font-mono font-bold text-emerald-300">{displayedKeywordScore}%</span>
           </div>
           <div className="w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-1.5 rounded-full transition-all duration-500"
-              style={{ width: `${keywordScore}%` }}
+              style={{ width: `${displayedKeywordScore}%` }}
             />
           </div>
           <span className="text-[11px] text-zinc-400">{keywordDetail}</span>
