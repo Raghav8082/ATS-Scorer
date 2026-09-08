@@ -42,7 +42,11 @@ async def _get_owned_job(job_id: UUID, current_user: TokenData, db: AsyncSession
 
 async def _get_user_profile(current_user: TokenData, db: AsyncSession) -> UserProfile:
     """Shared helper: fetch the current user's profile, ensuring a resume exists."""
-    stmt = select(UserProfile).where(UserProfile.user_id == current_user.id)
+    stmt = (
+        select(UserProfile)
+        .options(selectinload(UserProfile.user))
+        .where(UserProfile.user_id == current_user.id)
+    )
     db_result = await db.execute(stmt)
     profile = db_result.scalars().first()
     if profile is None or not profile.resume_text:
@@ -112,10 +116,10 @@ async def generate_letter(
             detail="No matching resume sections were found. Upload your resume again before generating a cover letter.",
         )
     candidate_name = (
-    profile.full_name
-    if profile.full_name and profile.full_name.strip().lower() != "user"
-    else current_user.username or "Applicant"
-)
+        profile.full_name
+        if profile.full_name and profile.full_name.strip().lower() != "user"
+        else profile.user.username if profile.user else "Applicant"
+    )
     letter = generate_cover_letter(resume_texts, job.description, job.company, candidate_name=candidate_name)
 
     return {
