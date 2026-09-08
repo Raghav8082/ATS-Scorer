@@ -6,6 +6,8 @@ from sqlalchemy import select
 from config.database import get_db
 from apps.models.job_model import Job
 from apps.models.userprof_model import UserProfile
+from apps.models.match_result_model import MatchResult
+from sqlalchemy.orm import selectinload
 from apps.auth.auth import get_current_user, TokenData
 from apps.RAG.chunking import prepare_job_description
 from apps.RAG.embedding import embed_chunks
@@ -13,6 +15,21 @@ from apps.RAG.cover_letter import generate_cover_letter
 from apps.scoring.score_service import compute_match_score
 
 score_router = APIRouter(prefix="/scoring", tags=["scoring"])
+
+def _serialize_match_result(result: MatchResult) -> dict:
+    return {
+        "id": str(result.id),
+        "job_id": str(result.job_id),
+        "embedding_score": result.embedding_score,
+        "top_matches": result.top_matches,
+        "created_at": result.created_at,
+        "job": {
+            "id": str(result.job.id),
+            "title": result.job.title,
+            "company": result.job.company,
+            "description": result.job.description,
+        },
+    }
 
 
 async def _get_owned_job(job_id: UUID, current_user: TokenData, db: AsyncSession) -> Job:
@@ -32,6 +49,20 @@ async def _get_user_profile(current_user: TokenData, db: AsyncSession) -> UserPr
         raise HTTPException(status_code=404, detail="User resume profile not found")
     return profile
 
+@score_router.get("/history")
+async def score_history(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(MatchResult)
+        .options(selectinload(MatchResult.job))
+        .where(MatchResult.user_id == current_user.id)
+        .order_by(MatchResult.created_at.desc())
+    )
+    db_result = await db.execute(stmt)
+    return [_serialize_match_result(result) for result in db_result.scalars().all()]
+
 
 @score_router.post("/{job_id}")
 async def score_resume(
@@ -46,6 +77,13 @@ async def score_resume(
     job_chunks = embed_chunks(job_chunks)
 
     score_result = compute_match_score(str(current_user.id), job_chunks)
+    db.add(MatchResult(
+        user_id=current_user.id,
+        job_id=job.id,
+        embedding_score=score_result["embedding_score"],
+        top_matches=score_result["top_matches"],
+    ))
+    await db.commit()
     return score_result
 
 

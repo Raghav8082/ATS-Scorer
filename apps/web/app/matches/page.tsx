@@ -10,32 +10,51 @@ import { ResultsPanel } from "@/components/dashboard/results-panel";
 import { EmptyStatePanel } from "@/components/dashboard/empty-state-panel";
 import { LoadingSkeleton } from "@/components/dashboard/loading-skeleton";
 import { SemanticHeatmapModal } from "@/components/dashboard/semantic-heatmap-modal";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function MatchesPage() {
   const [matchData, setMatchData] = useState<any | null>(null);
   const [viewState, setViewState] = useState<"populated" | "empty" | "loading">("loading");
   const [isHeatmapOpen, setIsHeatmapOpen] = useState(false);
 
-  // Load previous match data on mount if available
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("ats_last_match_result");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setMatchData(parsed);
-        if (parsed?.scoring && parsed?.jobId) {
-          setMatchData(parsed);
-          setViewState("populated");
-        } else {
+    const loadHistory = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setViewState("empty");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/scoring/history`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error("Could not load match history");
+        const history = await response.json();
+        const latest = history[0];
+        if (!latest) {
           setViewState("empty");
+          return;
         }
-      } else {
+        setMatchData({
+          jobId: latest.job_id,
+          company: latest.job.company,
+          jobTitle: latest.job.title,
+          jobDescription: latest.job.description,
+          scoring: {
+            embedding_score: latest.embedding_score,
+            top_matches: latest.top_matches,
+          },
+          timestamp: latest.created_at,
+        });
+        setViewState("populated");
+      } catch (error) {
+        console.error("Error loading match history:", error);
         setViewState("empty");
       }
-    } catch (e) {
-      console.error("Error reading stored match result:", e);
-      setViewState("empty");
-    }
+    };
+
+    loadHistory();
   }, []);
 
   const handleScoreMatchSuccess = (resultData: any) => {

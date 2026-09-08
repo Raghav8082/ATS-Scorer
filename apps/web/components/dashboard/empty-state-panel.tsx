@@ -108,12 +108,6 @@ export function EmptyStatePanel({ uploaded, isLoading = false }: EmptyStatePanel
         timestamp: new Date().toISOString(),
       };
 
-      try {
-        localStorage.setItem("ats_last_match_result", JSON.stringify(matchResult));
-      } catch (err) {
-        console.error("Failed to save match result to localStorage:", err);
-      }
-
       if (uploaded) {
         uploaded(matchResult);
       }

@@ -60,14 +60,14 @@ export function ResultsPanel({
           </div>
         </div>
 
-        <button
+        {/* <button
           onClick={onOpenHeatmap}
           type="button"
           className="px-4 py-2.5 rounded-lg bg-[#14141a] hover:bg-[#1f1f28] text-white border border-white/10 text-xs font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
         >
           <span className="material-symbols-outlined text-[16px] text-indigo-400">grid_on</span>
           <span>Open Heatmap</span>
-        </button>
+        </button> */}
       </div>
 
       {/* Primary Sub-Metric Cards Grid */}
@@ -154,14 +154,14 @@ export function ResultsPanel({
           Based on returned match sections
         </span>
         <div className="flex items-center gap-3">
-          <button
+          {/* <button
             onClick={onOpenHeatmap}
             type="button"
             className="px-3.5 py-2 rounded-lg bg-[#14141a] hover:bg-[#1f1f28] text-zinc-200 border border-white/10 text-xs font-medium transition-colors flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[16px] text-indigo-400">tune</span>
             <span>View Heatmap</span>
-          </button>
+          </button> */}
           <Link
             href={jobId ? `/cover-letters?jobId=${jobId}` : "/cover-letters"}
             className="px-4 py-2 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold tracking-tight transition-all flex items-center gap-1.5 shadow-sm"

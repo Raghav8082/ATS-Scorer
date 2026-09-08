@@ -82,19 +82,7 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
 
       let fileName = "Resume file";
       let fileSize = "File size unavailable";
-      const storedResult = localStorage.getItem("ats_last_match_result");
-
-      if (storedResult) {
-        try {
-          const parsed = JSON.parse(storedResult);
-          if (parsed.fileName) fileName = parsed.fileName;
-          if (parsed.fileSize) fileSize = parsed.fileSize;
-        } catch {
-          const rawName = storedResult.includes("_") ? storedResult.split("_").slice(1).join("_") : storedResult;
-          const firstChunk = rawName.split("-")[0] || "Resume";
-          fileName = firstChunk.charAt(0).toUpperCase() + firstChunk.slice(1);
-        }
-      } else if (resume_data?.resume_path) {
+      if (resume_data?.resume_path) {
         const rawPath = resume_data.resume_path;
         fileName = rawPath.includes("_") ? rawPath.split("_").slice(1).join("_") : rawPath;
       }
@@ -109,12 +97,6 @@ export function EmptyStatePanel({ onScoreMatch, uploaded, isLoading = false }: E
         scoring: final_response_data,
         timestamp: new Date().toISOString(),
       };
-
-      try {
-        localStorage.setItem("ats_last_match_result", JSON.stringify(matchResult));
-      } catch (err) {
-        console.error("Failed to save match result to localStorage:", err);
-      }
 
       if (uploaded) {
         uploaded(matchResult);

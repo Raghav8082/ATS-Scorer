@@ -38,30 +38,10 @@ function CoverLetterStudioContent() {
   const [basedOnScore, setBasedOnScore] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load saved jobs & recent match details
   useEffect(() => {
-    let lastMatchJob: SavedJobOption | null = null;
-    try {
-      const lastMatch = localStorage.getItem("ats_last_match_result");
-      if (lastMatch) {
-        const parsed = JSON.parse(lastMatch);
-        if (parsed.jobId) {
-          lastMatchJob = {
-            id: parsed.jobId,
-            company: parsed.company || "Target Organization",
-            title: parsed.jobTitle || "Requisition Role",
-            location: "Active Requisition",
-            description: parsed.jobDescription || "",
-          };
-        }
-      }
-    } catch (e) {
-      console.error("Error reading last match result:", e);
-    }
-
     const fetchJobs = async () => {
       const token = localStorage.getItem("access_token");
-      let allJobs: SavedJobOption[] = lastMatchJob ? [lastMatchJob] : [];
+      let allJobs: SavedJobOption[] = [];
 
       if (token) {
         try {
@@ -83,6 +63,23 @@ function CoverLetterStudioContent() {
                 allJobs.push(mj);
               }
             });
+
+            const historyRes = await fetch(`${API_BASE_URL}/scoring/history`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (historyRes.ok) {
+              const history = await historyRes.json();
+              const latest = history[0];
+              if (latest?.job && !allJobs.some((job) => job.id === latest.job_id)) {
+                allJobs.unshift({
+                  id: latest.job_id,
+                  company: latest.job.company || "Target Organization",
+                  title: latest.job.title || "Requisition Role",
+                  location: "Active Requisition",
+                  description: latest.job.description || "",
+                });
+              }
+            }
           }
         } catch (err) {
           console.error("Failed to load saved jobs:", err);
@@ -91,7 +88,7 @@ function CoverLetterStudioContent() {
 
       setSavedJobs(allJobs);
 
-      const targetId = queryJobId || lastMatchJob?.id || (allJobs[0] ? allJobs[0].id : "");
+      const targetId = queryJobId || (allJobs[0] ? allJobs[0].id : "");
       if (targetId) {
         setSelectedJobId(targetId);
         const found = allJobs.find((j) => j.id === targetId);

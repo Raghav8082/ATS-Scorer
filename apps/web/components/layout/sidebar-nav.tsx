@@ -64,7 +64,6 @@ export function SidebarNav() {
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
-    localStorage.removeItem("ats_last_match_result");
     setcurrentuser(null);
     setIsMenuOpen(false);
     router.push("/login");

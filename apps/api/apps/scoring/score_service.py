@@ -28,10 +28,20 @@ def compute_match_score(user_id: str, job_chunks: list[dict]) -> dict:
         if section not in best_per_resume_section or entry["score"] > best_per_resume_section[section]["score"]:
             best_per_resume_section[section] = entry
 
-    top_scores = sorted(best_per_resume_section.values(), key=lambda x: x["score"], reverse=True)[:3]
-    embedding_score = sum(e["score"] for e in top_scores) / len(top_scores) if top_scores else 0.0
+    all_sections = sorted(
+    best_per_resume_section.values(),
+    key=lambda x: x["score"],
+    reverse=True
+     )
+
+    top_scores = all_sections[:3]
+
+    embedding_score = (
+    sum(e["score"] for e in top_scores) / len(top_scores)
+    if top_scores else 0.0
+     )
 
     return {
         "embedding_score": embedding_score,
-        "top_matches": top_scores,
+        "top_matches": all_sections,
     }
