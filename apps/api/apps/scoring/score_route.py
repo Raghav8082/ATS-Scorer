@@ -111,7 +111,11 @@ async def generate_letter(
             status_code=404,
             detail="No matching resume sections were found. Upload your resume again before generating a cover letter.",
         )
-    candidate_name = profile.full_name or "Applicant"
+    candidate_name = (
+    profile.full_name
+    if profile.full_name and profile.full_name.strip().lower() != "user"
+    else current_user.username or "Applicant"
+)
     letter = generate_cover_letter(resume_texts, job.description, job.company, candidate_name=candidate_name)
 
     return {
